@@ -3,7 +3,7 @@ const cors=require('cors');
 require('dotenv').config()
 const app=express();
 const port=process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 //middleware
 app.use(cors());
@@ -29,12 +29,39 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    const instructorCollection = client.db("schoolDB").collection("instructors");
+    const userCollection = client.db("schoolDB").collection("users");
     const reviewCollection = client.db("schoolDB").collection("reviews");
     
-    app.get('/instructors',async(req,res)=>{
-      const result=await instructorCollection.find().toArray();
+    //Users apis
+    app.get('/users',async(req,res)=>{
+      const result=await userCollection.find().toArray();
       res.send(result);
+    })
+    app.post('/users',async(req,res)=>{
+      const user = req.body;
+      console.log(user);
+      const query = { email: user.email }
+      const existUser = await userCollection.findOne(query);
+      console.log('Exist User',existUser);
+      if (existUser) {
+        return res.send({ message: 'user already exists' })
+      }
+      const result=await userCollection.insertOne(user);
+      res.send(result);
+    })
+    app.patch('/users/admin/:id', async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: 'admin'
+        },
+      };
+
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+
     })
     app.get('/reviews',async(req,res)=>{
       const result=await reviewCollection.find().toArray();
