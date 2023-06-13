@@ -45,6 +45,7 @@ async function run() {
 
     const userCollection = client.db("schoolDB").collection("users");
     const reviewCollection = client.db("schoolDB").collection("reviews");
+    const instructorCollection=client.db("schoolDB").collection("instructors");
     
     app.post('/jwt', (req, res) => {
       const user = req.body;
@@ -62,11 +63,21 @@ async function run() {
       }
       next();
     }
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email }
+      const user = await userCollection.findOne(query);
+      if (user?.role !== 'Instructor') {
+        return res.status(403).send({ error: true, message: 'forbidden message' });
+      }
+      next();
+    }
     //Users apis
-    app.get('/users', verifyJWT,verifyAdmin, async(req,res)=>{
+    app.get('/users', verifyJWT,verifyAdmin,verifyInstructor, async(req,res)=>{
       const result=await userCollection.find().toArray();
       res.send(result);
     })
+    
     app.post('/users',async(req,res)=>{
       const user = req.body;
       console.log(user);
@@ -108,6 +119,11 @@ async function run() {
     })
 
     //Instructor apis
+    app.get('/instructors', async(req,res)=>{
+      const result=await instructorCollection.find().toArray();
+      res.send(result);
+    })
+
     app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
       const email = req.params.email;
 
