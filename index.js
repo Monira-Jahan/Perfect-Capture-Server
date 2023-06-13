@@ -52,8 +52,18 @@ async function run() {
 
       res.send({ token })
     })
+
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email }
+      const user = await userCollection.findOne(query);
+      if (user?.role !== 'Admin') {
+        return res.status(403).send({ error: true, message: 'forbidden message' });
+      }
+      next();
+    }
     //Users apis
-    app.get('/users',async(req,res)=>{
+    app.get('/users', verifyJWT,verifyAdmin, async(req,res)=>{
       const result=await userCollection.find().toArray();
       res.send(result);
     })
@@ -69,6 +79,7 @@ async function run() {
       const result=await userCollection.insertOne(user);
       res.send(result);
     })
+    //Admin apis
     app.get('/users/admin/:email', verifyJWT, async (req, res) => {
       const email = req.params.email;
 
@@ -78,7 +89,7 @@ async function run() {
 
       const query = { email: email }
       const user = await userCollection.findOne(query);
-      const result = { admin: user?.role === 'admin' }
+      const result = { admin: user?.role === 'Admin' }
       res.send(result);
     })
     app.patch('/users/admin/:id', async (req, res) => {
@@ -94,6 +105,20 @@ async function run() {
       const result = await userCollection.updateOne(filter, updateDoc);
       res.send(result);
 
+    })
+
+    //Instructor apis
+    app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ instructor: false })
+      }
+
+      const query = { email: email }
+      const user = await userCollection.findOne(query);
+      const result = { instructor: user?.role === 'Instructor' }
+      res.send(result);
     })
     app.patch('/users/instructor/:id', async (req, res) => {
       const id = req.params.id;
