@@ -1,5 +1,6 @@
 const express=require('express');
 const cors=require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const app=express();
 const port=process.env.PORT || 5000;
@@ -9,8 +10,21 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 app.use(cors());
 app.use(express.json());
 
-//schoolDB
-//gyvZ6DQQqNJuVafs
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).send({ error: true, message: 'unauthorized access' });
+  }
+  const token = authorization.split(' ')[1];
+  jwt.verify(token, process.env.ACCESS_SECRET_TOKEN, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ error: true, message: 'unauthorized access' })
+    }
+    req.decoded = decoded;
+    next();
+  })
+}
+
 
 
 const uri = `mongodb+srv://${process.env.SCHOOL_USER}:${process.env.SCHOOL_PASS}@cluster0.mhgghio.mongodb.net/?retryWrites=true&w=majority`;
@@ -32,6 +46,12 @@ async function run() {
     const userCollection = client.db("schoolDB").collection("users");
     const reviewCollection = client.db("schoolDB").collection("reviews");
     
+    app.post('/jwt', (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_SECRET_TOKEN, { expiresIn: '1h' })
+
+      res.send({ token })
+    })
     //Users apis
     app.get('/users',async(req,res)=>{
       const result=await userCollection.find().toArray();
@@ -49,13 +69,39 @@ async function run() {
       const result=await userCollection.insertOne(user);
       res.send(result);
     })
+    app.get('/users/admin/:email', verifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ admin: false })
+      }
+
+      const query = { email: email }
+      const user = await userCollection.findOne(query);
+      const result = { admin: user?.role === 'admin' }
+      res.send(result);
+    })
     app.patch('/users/admin/:id', async (req, res) => {
       const id = req.params.id;
       console.log(id);
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
-          role: 'admin'
+          role: 'Admin'
+        },
+      };
+
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+
+    })
+    app.patch('/users/instructor/:id', async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: 'Instructor'
         },
       };
 
