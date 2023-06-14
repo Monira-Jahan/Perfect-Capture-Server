@@ -41,7 +41,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+   // await client.connect();
 
     const userCollection = client.db("schoolDB").collection("users");
     
@@ -154,7 +154,7 @@ async function run() {
     })
     //Classes 
     app.get('/classes', async(req,res)=>{
-      const result=await classCollection.find().toArray();
+      const result=await classCollection.find().toArray();verc
       res.send(result);
     })
     app.post('/classes',  async (req, res) => {
