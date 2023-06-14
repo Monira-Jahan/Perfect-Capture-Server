@@ -44,8 +44,10 @@ async function run() {
     await client.connect();
 
     const userCollection = client.db("schoolDB").collection("users");
-    const reviewCollection = client.db("schoolDB").collection("reviews");
+    
     const instructorCollection=client.db("schoolDB").collection("instructors");
+    const classCollection=client.db("schoolDB").collection("classes");
+    const reviewCollection = client.db("schoolDB").collection("reviews");
     
     app.post('/jwt', (req, res) => {
       const user = req.body;
@@ -73,7 +75,7 @@ async function run() {
       next();
     }
     //Users apis
-    app.get('/users', verifyJWT,verifyAdmin,verifyInstructor, async(req,res)=>{
+    app.get('/users', verifyJWT,verifyAdmin, async(req,res)=>{
       const result=await userCollection.find().toArray();
       res.send(result);
     })
@@ -150,6 +152,13 @@ async function run() {
       res.send(result);
 
     })
+    //Classes 
+    app.post('/classes',  async (req, res) => {
+      const newClass = req.body;
+      const result = await classCollection.insertOne(newClass)
+      res.send(result);
+    })
+
     app.get('/reviews',async(req,res)=>{
       const result=await reviewCollection.find().toArray();
       res.send(result);
